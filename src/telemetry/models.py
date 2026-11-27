@@ -152,6 +152,8 @@ class DriverData:
     radar_elapsed_time_s: float = 0.0
     radar_position_valid: bool = False
     is_player: bool = False
+    # Higher-rate LMU telemetry lap counter; appended to preserve positional API.
+    lap_number: int = 0
 
 
 @dataclass
