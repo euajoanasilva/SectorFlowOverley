@@ -261,48 +261,114 @@ class MainMenuWindow(QMainWindow):
     def _build_toolbar(self) -> QWidget:
         box = QFrame()
         box.setObjectName("toolbarBox")
-        layout = QHBoxLayout(box)
-        layout.addWidget(QLabel("Perfil:"))
+        outer = QVBoxLayout(box)
+        outer.setContentsMargins(14, 12, 14, 12)
+        outer.setSpacing(9)
+
+        # Faixa principal: perfil e ações rápidas.
+        primary = QHBoxLayout()
+        primary.setSpacing(8)
+        profile_label = QLabel("Perfil:")
+        profile_label.setObjectName("toolbarFieldLabel")
+        primary.addWidget(profile_label)
+
         self.profile_combo = QComboBox()
+        self.profile_combo.setObjectName("profileCombo")
+        self.profile_combo.setMinimumWidth(142)
         self._reload_profiles()
         self.profile_combo.currentIndexChanged.connect(self._switch_profile)
-        layout.addWidget(self.profile_combo)
+        primary.addWidget(self.profile_combo)
+
         add_profile = QPushButton("Novo perfil")
+        add_profile.setObjectName("toolbarActionButton")
+        add_profile.setMinimumWidth(92)
+        add_profile.setCursor(Qt.CursorShape.PointingHandCursor)
         add_profile.clicked.connect(self._create_profile)
-        layout.addWidget(add_profile)
+        primary.addWidget(add_profile)
+
         self.rename_profile_button = QPushButton("Renomear")
+        self.rename_profile_button.setObjectName("toolbarActionButton")
+        self.rename_profile_button.setMinimumWidth(82)
+        self.rename_profile_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.rename_profile_button.clicked.connect(self._rename_profile)
-        layout.addWidget(self.rename_profile_button)
+        primary.addWidget(self.rename_profile_button)
+
         self.delete_profile_button = QPushButton("Excluir")
+        self.delete_profile_button.setObjectName("deleteProfileButton")
+        self.delete_profile_button.setMinimumWidth(70)
+        self.delete_profile_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.delete_profile_button.clicked.connect(self._delete_profile)
-        layout.addWidget(self.delete_profile_button)
+        primary.addWidget(self.delete_profile_button)
         self._update_profile_buttons()
+
+        primary.addStretch(1)
+
         self.edit_mode_button = QPushButton("Modo edição: DESLIGADO")
+        self.edit_mode_button.setObjectName("editModeButton")
+        self.edit_mode_button.setMinimumWidth(176)
         self.edit_mode_button.setCheckable(True)
+        self.edit_mode_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.edit_mode_button.toggled.connect(self._set_edit_mode)
-        layout.addWidget(self.edit_mode_button)
+        primary.addWidget(self.edit_mode_button)
+
         save = QPushButton("Salvar layout")
+        save.setObjectName("saveLayoutButton")
+        save.setMinimumWidth(112)
+        save.setCursor(Qt.CursorShape.PointingHandCursor)
         save.clicked.connect(self.overlay_manager.save_config)
-        layout.addWidget(save)
-        layout.addWidget(QLabel("Desempenho:"))
+        primary.addWidget(save)
+        outer.addLayout(primary)
+
+        divider = QFrame()
+        divider.setObjectName("toolbarDivider")
+        divider.setFrameShape(QFrame.Shape.HLine)
+        divider.setFixedHeight(1)
+        outer.addWidget(divider)
+
+        # Preferências em uma segunda faixa para evitar que os controles
+        # fiquem espremidos em telas menores.
+        preferences = QHBoxLayout()
+        preferences.setSpacing(9)
+
+        performance_label = QLabel("Desempenho:")
+        performance_label.setObjectName("toolbarFieldLabel")
+        preferences.addWidget(performance_label)
         self.performance_combo = QComboBox()
+        self.performance_combo.setObjectName("performanceCombo")
         self.performance_combo.addItem("Padrão", "standard")
         self.performance_combo.addItem("Baixo consumo", "low")
-        profile = str(self.overlay_manager.config_data.get("performance_profile", "standard"))
-        self.performance_combo.setCurrentIndex(max(0, self.performance_combo.findData(profile)))
-        self.performance_combo.setToolTip("Reduz a frequência de leitura e atualização dos overlays.")
-        self.performance_combo.currentIndexChanged.connect(self._set_performance_profile)
-        layout.addWidget(self.performance_combo)
-        layout.addWidget(QLabel("Idioma:"))
+        profile = str(
+            self.overlay_manager.config_data.get("performance_profile", "standard")
+        )
+        self.performance_combo.setCurrentIndex(
+            max(0, self.performance_combo.findData(profile))
+        )
+        self.performance_combo.setMinimumWidth(142)
+        self.performance_combo.setToolTip(
+            "Reduz a frequência de leitura e atualização dos overlays."
+        )
+        self.performance_combo.currentIndexChanged.connect(
+            self._set_performance_profile
+        )
+        preferences.addWidget(self.performance_combo)
+
+        preferences.addSpacing(14)
+        language_label = QLabel("Idioma:")
+        language_label.setObjectName("toolbarFieldLabel")
+        preferences.addWidget(language_label)
         self.language_combo = QComboBox()
+        self.language_combo.setObjectName("languageCombo")
         for code, label in LANGUAGES.items():
             self.language_combo.addItem(label, code)
         current = self.language_combo.findData(app_language())
         self.language_combo.setCurrentIndex(max(0, current))
+        self.language_combo.setMinimumWidth(126)
         self.language_combo.setToolTip("Idioma da interface")
         self.language_combo.currentIndexChanged.connect(self._change_language)
-        layout.addWidget(self.language_combo)
-        layout.addStretch()
+        preferences.addWidget(self.language_combo)
+        preferences.addStretch(1)
+
+        outer.addLayout(preferences)
         return box
 
     def _set_performance_profile(self, index: int) -> None:
@@ -457,9 +523,9 @@ class MainMenuWindow(QMainWindow):
         scroll.setWidgetResizable(True)
         content = QWidget()
         grid = QGridLayout(content)
-        grid.setContentsMargins(0, 0, 0, 0)
-        grid.setHorizontalSpacing(12)
-        grid.setVerticalSpacing(8)
+        grid.setContentsMargins(10, 12, 10, 12)
+        grid.setHorizontalSpacing(14)
+        grid.setVerticalSpacing(12)
 
         configs = self.overlay_manager.config_data.setdefault("widgets", {})
         for index, definition in enumerate(WIDGET_DEFINITIONS):
@@ -697,38 +763,338 @@ class MainMenuWindow(QMainWindow):
     def _apply_style(self) -> None:
         self.setStyleSheet(
             """
-            QMainWindow, QWidget { background: #090D15; color: #F4F7FB; font-family: Arial; font-size: 14px; }
-            QFrame#headerBox, QFrame#toolbarBox, QFrame#footerBox { background: #151B26; border: 1px solid #2A3444; border-radius: 12px; }
-            QFrame#headerInfoBox { background: #101722; border: 1px solid #2A3444; border-radius: 8px; }
-            QLabel#mainTitle { font-size: 30px; font-weight: 700; }
-            QLabel#subtitle { color: #9BA8BA; }
-            QLabel#versionLabel { color: #67E8F9; font-weight: 700; }
-            QPushButton#updateNotesButton { background: #1265A8; border-color: #2784CA; }
-            QLabel#updateDialogTitle { color: #67E8F9; font-size: 20px; font-weight: 700; }
-            QLabel#updateDialogNote { color: #D7DEE9; font-size: 14px; padding: 10px; }
-            QLabel#donationLabel { color: #F1B84B; font-size: 12px; font-weight: 700; }
-            QPushButton#donationButton { background: #7C3AED; border-color: #9B6AF3; }
-            QLabel#donationDialogTitle { font-size: 18px; font-weight: 700; color: #F1B84B; }
-            QLabel#pixQrCode { background: #202938; border: 2px solid #67E8F9; border-radius: 10px; padding: 14px; }
-            QLabel#pixKeyLabel { color: #D7DEE9; font-family: Consolas; font-size: 12px; }
-            QPushButton#paypalButton { background: #0070BA; border-color: #169BD7; }
-            QFrame#menuRow { background: #171E2A; border: 1px solid #2B3546; border-radius: 9px; }
-            QFrame#menuRow:hover { border: 1px solid #506078; }
-            QLabel#rowTitle { font-size: 17px; font-weight: 650; }
-            QLabel#rowStatus { color: #EF5350; font-size: 11px; font-weight: 700; }
-            QLabel#rowStatus[active="true"] { color: #4BD59A; }
-            QPushButton { background: #29364A; border: 1px solid #40516C; border-radius: 7px; padding: 7px 12px; }
-            QPushButton:hover { background: #34445C; }
-            QPushButton:disabled { background: #1C2330; color: #606B7A; border-color: #2B3340; }
-            QPushButton:checked { background: #7C3AED; border-color: #9B6AF3; }
-            QComboBox { background: #202938; border: 1px solid #3A485E; border-radius: 7px; padding: 7px; min-width: 150px; }
-            QCheckBox::indicator { width: 42px; height: 22px; }
-            QCheckBox::indicator:unchecked { image: none; background: #4A5362; border-radius: 11px; }
-            QCheckBox::indicator:checked { image: none; background: #14B86E; border-radius: 11px; }
-            QLabel#connectionLabel { color: #F1B84B; font-weight: 600; }
-            QLabel#connectionLabel[connected="true"] { color: #3EDB91; }
-            QLabel#connectionLabel[connected="false"] { color: #FF6268; }
-            QPushButton#communityLinkButton { background: #202D42; border-color: #40516C; color: #8CC6FF; padding: 4px 9px; min-height: 20px; font-size: 12px; }
-            QScrollArea { border: none; background: transparent; }
+            QMainWindow, QWidget {
+                background: #0B111B;
+                color: #E8EEF7;
+                font-family: "Segoe UI", Arial, sans-serif;
+                font-size: 13px;
+            }
+
+            QFrame#headerBox {
+                background: qlineargradient(
+                    x1: 0, y1: 0, x2: 1, y2: 1,
+                    stop: 0 #19283C, stop: 1 #101A29
+                );
+                border: 1px solid #2D405A;
+                border-radius: 16px;
+            }
+            QFrame#toolbarBox, QFrame#footerBox {
+                background: #121C2A;
+                border: 1px solid #26374D;
+                border-radius: 13px;
+            }
+            QFrame#headerInfoBox {
+                background: #142238;
+                border: 1px solid #30445F;
+                border-radius: 11px;
+            }
+            QFrame#toolbarDivider {
+                background: #29394D;
+                border: none;
+                max-height: 1px;
+            }
+
+            QLabel#mainTitle {
+                color: #F7FAFF;
+                font-size: 29px;
+                font-weight: 750;
+            }
+            QLabel#subtitle {
+                color: #A7B7CC;
+                font-size: 13px;
+            }
+            QLabel#versionLabel {
+                color: #70D8F5;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            QLabel#donationLabel {
+                color: #F1C56B;
+                font-size: 11px;
+                font-weight: 700;
+            }
+            QLabel#toolbarFieldLabel {
+                color: #9FB0C5;
+                font-size: 12px;
+                font-weight: 650;
+            }
+            QLabel#updateDialogTitle {
+                color: #70D8F5;
+                font-size: 20px;
+                font-weight: 700;
+            }
+            QLabel#updateDialogNote {
+                color: #D7E0EC;
+                font-size: 13px;
+                padding: 10px;
+            }
+            QLabel#donationDialogTitle {
+                color: #F1C56B;
+                font-size: 18px;
+                font-weight: 700;
+            }
+            QLabel#pixQrCode {
+                background: #17263A;
+                border: 2px solid #4CB8D8;
+                border-radius: 12px;
+                padding: 14px;
+            }
+            QLabel#pixKeyLabel {
+                color: #D7E0EC;
+                font-family: Consolas, monospace;
+                font-size: 12px;
+            }
+
+            QTabWidget::pane {
+                background: #0F1825;
+                border: 1px solid #283A51;
+                border-radius: 12px;
+                top: -1px;
+            }
+            QTabBar::tab {
+                background: #141F2E;
+                color: #9AACC2;
+                border: 1px solid #293B52;
+                border-bottom: none;
+                padding: 10px 19px;
+                margin-right: 5px;
+                border-top-left-radius: 9px;
+                border-top-right-radius: 9px;
+                font-weight: 650;
+            }
+            QTabBar::tab:hover {
+                background: #1B2A3E;
+                color: #EAF2FC;
+            }
+            QTabBar::tab:selected {
+                background: #1B2D45;
+                color: #F7FAFF;
+                border-color: #397FBD;
+                border-bottom: 2px solid #58B9E8;
+            }
+
+            QFrame#menuRow {
+                background: qlineargradient(
+                    x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #172435, stop: 1 #131F2E
+                );
+                border: 1px solid #2B3D54;
+                border-radius: 12px;
+            }
+            QFrame#menuRow:hover {
+                background: #1A2A3E;
+                border: 1px solid #4A7195;
+            }
+            QLabel#rowTitle {
+                color: #EDF4FD;
+                font-size: 14px;
+                font-weight: 700;
+            }
+            QLabel#rowStatus {
+                color: #F08B91;
+                background: #30232D;
+                border: 1px solid #563743;
+                border-radius: 9px;
+                padding: 4px 9px;
+                font-size: 10px;
+                font-weight: 750;
+            }
+            QLabel#rowStatus[active="true"] {
+                color: #67E2AE;
+                background: #15382F;
+                border-color: #28634F;
+            }
+
+            QPushButton {
+                background: #223249;
+                color: #E7EFF9;
+                border: 1px solid #3A506D;
+                border-radius: 8px;
+                padding: 8px 12px;
+                min-height: 18px;
+                font-weight: 650;
+            }
+            QPushButton:hover {
+                background: #2C4260;
+                border-color: #56789F;
+            }
+            QPushButton:pressed {
+                background: #1A2A3F;
+                padding-top: 9px;
+                padding-bottom: 7px;
+            }
+            QPushButton:disabled {
+                background: #182333;
+                color: #64748A;
+                border-color: #29384B;
+            }
+            QPushButton#toolbarActionButton {
+                background: #1B2A3E;
+                border-color: #344B68;
+            }
+            QPushButton#toolbarActionButton:hover {
+                background: #263C57;
+                border-color: #4C7098;
+            }
+            QPushButton#deleteProfileButton {
+                color: #F0A4A7;
+                background: #30232D;
+                border-color: #593744;
+            }
+            QPushButton#deleteProfileButton:hover {
+                background: #482B36;
+                border-color: #81505E;
+            }
+            QPushButton#editModeButton {
+                color: #B8C8DA;
+                background: #1B2B40;
+                border-color: #3A526E;
+            }
+            QPushButton#editModeButton:checked {
+                color: #8CF0C5;
+                background: #164333;
+                border-color: #2A8C68;
+            }
+            QPushButton#saveLayoutButton {
+                color: #F2FBF7;
+                background: #17664F;
+                border-color: #2D9674;
+            }
+            QPushButton#saveLayoutButton:hover {
+                background: #1C8061;
+                border-color: #42B58D;
+            }
+            QPushButton#rowEditButton {
+                color: #DFF2FF;
+                background: #174B73;
+                border-color: #2878AA;
+                padding-left: 14px;
+                padding-right: 14px;
+            }
+            QPushButton#rowEditButton:hover {
+                background: #1D6596;
+                border-color: #4BA4D4;
+            }
+            QPushButton#updateNotesButton {
+                color: #F0FAFF;
+                background: #155C91;
+                border-color: #2C8AC4;
+            }
+            QPushButton#donationButton {
+                color: #FBF5FF;
+                background: #6741A5;
+                border-color: #8D68C7;
+            }
+            QPushButton#donationButton:hover {
+                background: #7951B8;
+            }
+            QPushButton#paypalButton {
+                background: #086CA7;
+                border-color: #2496CF;
+            }
+            QPushButton#communityLinkButton {
+                color: #A9D7FF;
+                background: #1A2A3E;
+                border-color: #344B68;
+                padding: 5px 10px;
+                min-height: 18px;
+                font-size: 11px;
+            }
+
+            QComboBox {
+                color: #E8F0FA;
+                background: #182639;
+                border: 1px solid #344A65;
+                border-radius: 8px;
+                padding: 7px 10px;
+                min-width: 118px;
+                min-height: 20px;
+                selection-background-color: #246BA4;
+            }
+            QComboBox:hover {
+                border-color: #52769B;
+                background: #1D3048;
+            }
+            QComboBox:focus {
+                border-color: #4B9ED1;
+            }
+            QComboBox::drop-down {
+                width: 26px;
+                border: none;
+            }
+            QComboBox QAbstractItemView {
+                color: #E8F0FA;
+                background: #172538;
+                border: 1px solid #3B526F;
+                selection-background-color: #235F91;
+                selection-color: #FFFFFF;
+                padding: 4px;
+                outline: none;
+            }
+
+            QCheckBox {
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 42px;
+                height: 22px;
+            }
+            QCheckBox::indicator:unchecked {
+                image: none;
+                background: #3B485B;
+                border: 1px solid #53647B;
+                border-radius: 11px;
+            }
+            QCheckBox::indicator:checked {
+                image: none;
+                background: #16865D;
+                border: 1px solid #36C28D;
+                border-radius: 11px;
+            }
+            QCheckBox::indicator:disabled {
+                background: #222E3D;
+                border-color: #303F52;
+            }
+
+            QLabel#connectionLabel {
+                color: #F0B95D;
+                font-weight: 700;
+            }
+            QLabel#connectionLabel[connected="true"] {
+                color: #57DCA4;
+            }
+            QLabel#connectionLabel[connected="false"] {
+                color: #F07A82;
+            }
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+            QScrollArea > QWidget > QWidget {
+                background: transparent;
+            }
+            QScrollBar:vertical {
+                background: #101A28;
+                width: 10px;
+                margin: 3px;
+                border-radius: 5px;
+            }
+            QScrollBar::handle:vertical {
+                background: #3A526E;
+                min-height: 28px;
+                border-radius: 5px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #54799D;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0;
+            }
+            QToolTip {
+                color: #F3F7FC;
+                background: #172538;
+                border: 1px solid #3B526F;
+                padding: 5px 8px;
+            }
             """
         )
