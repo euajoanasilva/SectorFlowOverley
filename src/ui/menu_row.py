@@ -28,11 +28,22 @@ class MenuRow(QFrame):
 
         self.widget_id = widget_id
         self.setObjectName("menuRow")
-        self.setMinimumHeight(58)
+        self.setMinimumHeight(48)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(15, 9, 12, 9)
-        layout.setSpacing(14)
+        layout.setContentsMargins(10, 6, 9, 6)
+        layout.setSpacing(9)
+
+        icon_map = {
+            "standings": "🏆", "delta": "Δ", "driver_panel": "◉",
+            "fuel_time": "⛽", "tires": "⚙", "url": "↗",
+            "flags": "⚑", "relative": "⌖", "map": "▧",
+            "battery": "▣", "lap_timer": "◷", "damage": "⚠",
+            "weather": "☁", "radar": "◎",
+        }
+        self.icon_label = QLabel(icon_map.get(widget_id, "◆"))
+        self.icon_label.setObjectName("rowIcon")
+        self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.title_label = QLabel(title)
         self.title_label.setObjectName("rowTitle")
@@ -62,6 +73,7 @@ class MenuRow(QFrame):
             lambda: self.edit_requested.emit(self.widget_id)
         )
 
+        layout.addWidget(self.icon_label)
         layout.addWidget(self.title_label, 1)
         layout.addWidget(self.status_label)
         layout.addWidget(self.toggle)
