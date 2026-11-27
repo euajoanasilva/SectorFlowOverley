@@ -28,10 +28,11 @@ class MenuRow(QFrame):
 
         self.widget_id = widget_id
         self.setObjectName("menuRow")
+        self.setMinimumHeight(58)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(14, 8, 10, 8)
-        layout.setSpacing(12)
+        layout.setContentsMargins(15, 9, 12, 9)
+        layout.setSpacing(14)
 
         self.title_label = QLabel(title)
         self.title_label.setObjectName("rowTitle")
@@ -42,6 +43,8 @@ class MenuRow(QFrame):
         self.toggle = QCheckBox()
         self.toggle.setChecked(enabled)
         self.toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.toggle.setToolTip("Ativar ou desativar este overlay")
+        self.toggle.setAccessibleName(f"Ativar ou desativar {title}")
         self.toggle.toggled.connect(
             lambda value: self.toggled.emit(self.widget_id, value)
         )
@@ -49,7 +52,11 @@ class MenuRow(QFrame):
         # Sempre guarde o texto-base. O tradutor de runtime aplica o idioma
         # quando a linha aparece e consegue retornar ao português depois.
         self.edit_button = QPushButton("Editar")
+        self.edit_button.setObjectName("rowEditButton")
+        self.edit_button.setMinimumWidth(78)
         self.edit_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.edit_button.setToolTip("Personalizar este overlay")
+        self.edit_button.setAccessibleName(f"Editar {title}")
         self.edit_button.setEnabled(editable and implemented)
         self.edit_button.clicked.connect(
             lambda: self.edit_requested.emit(self.widget_id)
