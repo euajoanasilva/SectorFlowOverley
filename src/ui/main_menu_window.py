@@ -519,30 +519,59 @@ class MainMenuWindow(QMainWindow):
             )
 
     def _build_widget_grid(self) -> QWidget:
+        """Organiza os overlays por área sem alterar seus IDs ou sinais."""
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
         content = QWidget()
-        grid = QGridLayout(content)
-        grid.setContentsMargins(10, 12, 10, 12)
-        grid.setHorizontalSpacing(14)
-        grid.setVerticalSpacing(12)
+        sections_layout = QVBoxLayout(content)
+        sections_layout.setContentsMargins(10, 12, 10, 12)
+        sections_layout.setSpacing(16)
 
         configs = self.overlay_manager.config_data.setdefault("widgets", {})
-        for index, definition in enumerate(WIDGET_DEFINITIONS):
-            enabled = bool(configs.get(definition.widget_id, {}).get("enabled", False))
-            row = MenuRow(
-                definition.widget_id,
-                definition.title,
-                enabled,
-                definition.editable,
-                definition.implemented,
-            )
-            row.setProperty("sectorflowTitle", definition.title)
-            row.toggled.connect(self._toggle_widget)
-            row.edit_requested.connect(self._open_editor)
-            grid.addWidget(row, index // 2, index % 2)
-            self.rows[definition.widget_id] = row
+        grouped: dict[str, list] = {}
+        for definition in WIDGET_DEFINITIONS:
+            grouped.setdefault(definition.category, []).append(definition)
 
+        for category, definitions in grouped.items():
+            section = QFrame()
+            section.setObjectName("categorySection")
+            section_layout = QVBoxLayout(section)
+            section_layout.setContentsMargins(12, 10, 12, 12)
+            section_layout.setSpacing(9)
+
+            heading = QLabel(tr(category))
+            heading.setObjectName("categoryTitle")
+            section_layout.addWidget(heading)
+
+            grid = QGridLayout()
+            grid.setContentsMargins(0, 0, 0, 0)
+            grid.setHorizontalSpacing(12)
+            grid.setVerticalSpacing(9)
+            grid.setColumnStretch(0, 1)
+            grid.setColumnStretch(1, 1)
+
+            for index, definition in enumerate(definitions):
+                enabled = bool(
+                    configs.get(definition.widget_id, {}).get("enabled", False)
+                )
+                row = MenuRow(
+                    definition.widget_id,
+                    definition.title,
+                    enabled,
+                    definition.editable,
+                    definition.implemented,
+                )
+                row.setProperty("sectorflowTitle", definition.title)
+                row.toggled.connect(self._toggle_widget)
+                row.edit_requested.connect(self._open_editor)
+                grid.addWidget(row, index // 2, index % 2)
+                self.rows[definition.widget_id] = row
+
+            section_layout.addLayout(grid)
+            sections_layout.addWidget(section)
+
+        sections_layout.addStretch(1)
         scroll.setWidget(content)
         return scroll
 
@@ -599,12 +628,19 @@ class MainMenuWindow(QMainWindow):
         self.lap_recorder.finish_session()
 
     def _toggle_widget(self, widget_id: str, enabled: bool) -> None:
+        widgets_config = self.overlay_manager.config_data.setdefault("widgets", {})
+        previous_enabled = bool(
+            widgets_config.get(widget_id, {}).get("enabled", False)
+        )
         try:
             self.overlay_manager.set_widget_enabled(widget_id, enabled)
             self.rows[widget_id].set_enabled_state(enabled)
         except Exception as exc:
+            # Em caso de falha, restaura o estado anterior em vez de forçar
+            # o botão para desligado (o que poderia divergir da configuração).
+            widgets_config.setdefault(widget_id, {})["enabled"] = previous_enabled
+            self.rows[widget_id].set_enabled_state(previous_enabled)
             QMessageBox.critical(self, tr("Erro ao controlar widget"), str(exc))
-            self.rows[widget_id].set_enabled_state(False)
 
     def _open_editor(self, widget_id: str) -> None:
         if widget_id == "driver_panel":
@@ -871,6 +907,19 @@ class MainMenuWindow(QMainWindow):
                 color: #F7FAFF;
                 border-color: #397FBD;
                 border-bottom: 2px solid #58B9E8;
+            }
+
+            QFrame#categorySection {
+                background: #101B29;
+                border: 1px solid #263A51;
+                border-radius: 13px;
+            }
+            QLabel#categoryTitle {
+                color: #71C8F0;
+                font-size: 12px;
+                font-weight: 800;
+                letter-spacing: 1px;
+                padding: 2px 4px 5px 4px;
             }
 
             QFrame#menuRow {
