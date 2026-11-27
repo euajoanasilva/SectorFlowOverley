@@ -60,13 +60,14 @@ class MainMenuWindow(QMainWindow):
         self._lmu_status_text = "conexão"
 
         self.setWindowTitle("SectorFlow Overley")
-        self.resize(920, 720)
+        self.resize(1180, 850)
+        self.setMinimumSize(940, 700)
 
         central = QWidget()
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
-        root.setContentsMargins(18, 18, 18, 18)
-        root.setSpacing(12)
+        root.setContentsMargins(14, 12, 14, 12)
+        root.setSpacing(10)
         root.addWidget(self._build_header())
         root.addWidget(self._build_toolbar())
         self.content_tabs = QTabWidget()
@@ -84,10 +85,20 @@ class MainMenuWindow(QMainWindow):
         box = QFrame()
         box.setObjectName("headerBox")
         layout = QHBoxLayout(box)
+        layout.setContentsMargins(18, 14, 18, 14)
+        layout.setSpacing(16)
+
+        logo = QLabel("S")
+        logo.setObjectName("brandMark")
+        logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo.setFixedSize(66, 66)
+        layout.addWidget(logo)
+
         identity = QVBoxLayout()
+        identity.setSpacing(3)
         title = QLabel("SectorFlow Overley")
         title.setObjectName("mainTitle")
-        subtitle = QLabel("Ative, desative e personalize os overlays.")
+        subtitle = QLabel("🏁  ATIVE, DESATIVE E PERSONALIZE OS OVERLAYS  ·  RACE TELEMETRY")
         subtitle.setObjectName("subtitle")
         identity.addWidget(title)
         identity.addWidget(subtitle)
@@ -97,30 +108,28 @@ class MainMenuWindow(QMainWindow):
         update_box = QFrame()
         update_box.setObjectName("headerInfoBox")
         update_layout = QVBoxLayout(update_box)
-        update_layout.setContentsMargins(12, 8, 12, 8)
-        self.version_label = QLabel(f"{tr('Versão')} {header_config['version']}")
+        update_layout.setContentsMargins(13, 9, 13, 9)
+        update_layout.setSpacing(6)
+        self.version_label = QLabel(f"●  {tr('Versão')} {header_config['version']}")
         self.version_label.setProperty("sectorflowVersion", header_config["version"])
         self.version_label.setObjectName("versionLabel")
-        notes_button = QPushButton("Notas da versão")
+        notes_button = QPushButton("▤  Notas da versão")
         notes_button.setObjectName("updateNotesButton")
-        notes_button.clicked.connect(
-            lambda: self._open_update_notes(header_config)
-        )
+        notes_button.clicked.connect(lambda: self._open_update_notes(header_config))
         update_layout.addWidget(self.version_label)
         update_layout.addWidget(notes_button)
-        layout.addWidget(update_box, 1)
+        layout.addWidget(update_box)
 
         donation_box = QFrame()
         donation_box.setObjectName("headerInfoBox")
         donation_layout = QVBoxLayout(donation_box)
-        donation_layout.setContentsMargins(12, 8, 12, 8)
-        donation_title = QLabel(header_config["donation_label"])
+        donation_layout.setContentsMargins(13, 9, 13, 9)
+        donation_layout.setSpacing(6)
+        donation_title = QLabel("♥  " + header_config["donation_label"])
         donation_title.setObjectName("donationLabel")
-        donation_button = QPushButton("Doações")
+        donation_button = QPushButton("♥  Doações")
         donation_button.setObjectName("donationButton")
-        donation_button.clicked.connect(
-            lambda: self._open_donation(header_config)
-        )
+        donation_button.clicked.connect(lambda: self._open_donation(header_config))
         donation_layout.addWidget(donation_title)
         donation_layout.addWidget(donation_button)
         layout.addWidget(donation_box)
@@ -519,59 +528,71 @@ class MainMenuWindow(QMainWindow):
             )
 
     def _build_widget_grid(self) -> QWidget:
-        """Organiza os overlays por área sem alterar seus IDs ou sinais."""
+        """Painel 2x2 por categoria; IDs, sinais e callbacks permanecem intactos."""
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setObjectName("overlayScroll")
         content = QWidget()
-        sections_layout = QVBoxLayout(content)
-        sections_layout.setContentsMargins(10, 12, 10, 12)
-        sections_layout.setSpacing(16)
+        sections_layout = QGridLayout(content)
+        sections_layout.setContentsMargins(10, 10, 10, 10)
+        sections_layout.setHorizontalSpacing(14)
+        sections_layout.setVerticalSpacing(14)
+        sections_layout.setColumnStretch(0, 1)
+        sections_layout.setColumnStretch(1, 1)
 
         configs = self.overlay_manager.config_data.setdefault("widgets", {})
         grouped: dict[str, list] = {}
         for definition in WIDGET_DEFINITIONS:
             grouped.setdefault(definition.category, []).append(definition)
 
-        for category, definitions in grouped.items():
+        category_details = {
+            "Corrida": ("🏁", "Informações da corrida"),
+            "Carro": ("🚘", "Dados e condição do veículo"),
+            "Estratégia": ("◈", "Planejamento e estratégia"),
+            "Sistema": ("⌁", "Conexões e informações"),
+        }
+        category_order = ["Corrida", "Carro", "Estratégia", "Sistema"]
+        ordered = [name for name in category_order if name in grouped]
+        ordered.extend(name for name in grouped if name not in ordered)
+
+        for category_index, category in enumerate(ordered):
             section = QFrame()
             section.setObjectName("categorySection")
             section_layout = QVBoxLayout(section)
             section_layout.setContentsMargins(12, 10, 12, 12)
-            section_layout.setSpacing(9)
-
+            section_layout.setSpacing(8)
+            icon, description = category_details.get(category, ("◆", ""))
+            heading_row = QHBoxLayout()
+            heading_row.setSpacing(10)
+            icon_label = QLabel(icon)
+            icon_label.setObjectName("categoryIcon")
+            heading_row.addWidget(icon_label)
+            heading_text = QVBoxLayout()
+            heading_text.setSpacing(0)
             heading = QLabel(tr(category))
             heading.setObjectName("categoryTitle")
-            section_layout.addWidget(heading)
+            caption = QLabel(tr(description) if description else "")
+            caption.setObjectName("categorySubtitle")
+            heading_text.addWidget(heading)
+            heading_text.addWidget(caption)
+            heading_row.addLayout(heading_text, 1)
+            section_layout.addLayout(heading_row)
+            accent = QFrame()
+            accent.setObjectName("categoryAccent")
+            accent.setFixedHeight(3)
+            section_layout.addWidget(accent)
 
-            grid = QGridLayout()
-            grid.setContentsMargins(0, 0, 0, 0)
-            grid.setHorizontalSpacing(12)
-            grid.setVerticalSpacing(9)
-            grid.setColumnStretch(0, 1)
-            grid.setColumnStretch(1, 1)
-
-            for index, definition in enumerate(definitions):
-                enabled = bool(
-                    configs.get(definition.widget_id, {}).get("enabled", False)
-                )
-                row = MenuRow(
-                    definition.widget_id,
-                    definition.title,
-                    enabled,
-                    definition.editable,
-                    definition.implemented,
-                )
+            for definition in grouped[category]:
+                enabled = bool(configs.get(definition.widget_id, {}).get("enabled", False))
+                row = MenuRow(definition.widget_id, definition.title, enabled, definition.editable, definition.implemented)
                 row.setProperty("sectorflowTitle", definition.title)
                 row.toggled.connect(self._toggle_widget)
                 row.edit_requested.connect(self._open_editor)
-                grid.addWidget(row, index // 2, index % 2)
+                section_layout.addWidget(row)
                 self.rows[definition.widget_id] = row
-
-            section_layout.addLayout(grid)
-            sections_layout.addWidget(section)
-
-        sections_layout.addStretch(1)
+            sections_layout.addWidget(section, category_index // 2, category_index % 2)
+        sections_layout.setRowStretch(2, 1)
         scroll.setWidget(content)
         return scroll
 
